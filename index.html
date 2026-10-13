@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>שמירות</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="שמירות">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#4472c4">
+<style>
+  :root { --head:#4472c4; --yellow:#ffff00; --line:#9a9a9a; --bg:#f4f6fa; --text:#111; --ok:#2e7d32; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+         padding-top:calc(12px + env(safe-area-inset-top, 0px));
+         background:var(--bg); color:var(--text); font-family: Arial, "Segoe UI", sans-serif; }
+  h1 { font-size:20px; margin:0 0 6px; text-align:center; }
+  .dates { display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap;
+           margin:0 0 8px; font-size:15px; font-weight:bold; }
+  .dates input { font-size:16px; font-family:inherit; padding:6px 8px; border:1px solid var(--line);
+                 border-radius:6px; background:#fff; color:inherit; }
+  .status { font-size:14px; font-weight:bold; text-align:center; margin:0 0 8px; min-height:1.3em; }
+  .status.ok { color:var(--ok); } .status.dirty { color:#c62828; }
+  .wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:16px;
+          background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  table { border-collapse:collapse; width:100%; min-width:640px; }
+  th, td { border:1px solid var(--line); padding:0; text-align:center; font-size:14px; }
+  th.title { background:var(--head); color:#fff; font-size:16px; padding:8px; }
+  th.title span { position:sticky; right:8px; left:8px; }
+  th.y { background:var(--yellow); font-weight:bold; padding:6px 4px; white-space:nowrap; }
+  th.y small { display:block; font-size:12px; font-weight:normal; }
+  th.y input.hr { width:100%; min-width:112px; border:0; padding:4px 2px; font-size:15px; font-weight:bold;
+                  text-align:center; background:transparent; font-family:inherit; color:inherit; }
+  td input { width:100%; min-width:70px; border:0; padding:9px 4px; font-size:16px;
+             text-align:center; background:transparent; font-family:inherit; color:inherit; }
+  td input:focus, th.y input.hr:focus { outline:2px solid var(--head); background:#eef3ff; }
+  .bar { position:sticky; bottom:0; display:grid; grid-template-columns:1fr 1fr; gap:8px;
+         padding:10px 0 4px; background:var(--bg); }
+  button { border:0; border-radius:8px; padding:13px 8px; font-size:16px; font-weight:bold;
+           font-family:inherit; cursor:pointer; color:#fff; }
+  .save { background:var(--ok); grid-column:1 / -1; font-size:18px; }
+  .wa { background:#25d366; } .mail { background:#4472c4; }
+  .clr { background:transparent; color:#c62828; border:2px solid #c62828; grid-column:1 / -1; padding:9px; }
+  .clr.armed { background:#c62828; color:#fff; }
+  .hint { font-size:13px; color:#555; text-align:center; margin:6px 0 0; line-height:1.5; }
+  #imgView { position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:50; display:flex; flex-direction:column;
+             align-items:center; gap:10px; padding:calc(14px + env(safe-area-inset-top, 0px)) 14px 14px; overflow:auto; }
+  #imgView[hidden] { display:none; }
+  #imgView p { color:#fff; font-size:17px; font-weight:bold; text-align:center; margin:0; line-height:1.5; }
+  #imgView img { width:100%; max-width:900px; background:#fff; border-radius:6px; -webkit-touch-callout:default; }
+  #imgView button { width:100%; max-width:900px; background:#9aa0a6; }
+</style>
+</head>
+<body>
+<h1 id="h">סידור שמירה</h1>
+<div class="dates">
+  <label>מפקד צוות <input type="text" id="cmd" placeholder="שם המפקד" style="width:140px;text-align:center"></label>
+  <label>קבוצה <input type="text" id="group" placeholder="למשל: קבוצה א'" style="width:140px;text-align:center"></label>
+  <label>מיום ראשון <input type="date" id="from"></label>
+  <label>עד שבת <input type="date" id="to"></label>
+</div>
+<p class="status" id="status"></p>
+<div id="tables"></div>
+<div class="bar">
+  <button class="save" id="save">💾 שמור</button>
+  <button class="wa" id="shareImg">📷 שלח תמונה</button>
+  <button class="mail" id="mail">✉️ שלח במייל</button>
+  <button class="clr" id="clear">נקה את כל השמות</button>
+</div>
+<p class="hint">לוחצים על משבצת ומקלידים שם. גם את השעות בצהוב אפשר לשנות.<br>לפני שיוצאים – לוחצים "שמור".</p>
+
+<div id="imgView" hidden>
+  <p id="imgMsg">👆 לחץ לחיצה ארוכה על התמונה<br>ובחר "שמור בתמונות" או "שתף"</p>
+  <img id="imgOut" alt="סידור שמירה">
+  <button id="imgClose">סגור</button>
+</div>
+
+<script>
+const DAYS = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+const SECTIONS = [
+  { id:'back',   title:'ש.ג. אחורי', rows:['06:00 - 12:00','12:00 - 18:00'] },
+  { id:'front',  title:'ש.ג קדמי',   rows:['06:00 - 12:00','12:00 - 18:00','18:00 - 00:00','00:00 - 06:00'] },
+  { id:'patrol', title:'פטרול לילה', rows:['22:00 - 06:00'], note:'פטרול כל שעתיים' },
+];
+const KEY = 'shmirot-app-v1';
+const $ = id => document.getElementById(id);
+
+// ---- dates ----
+const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parse = v => { const [y,m,d] = v.split('-').map(Number); return new Date(y, m-1, d); };
+const addDays = (v, n) => { const d = parse(v); d.setDate(d.getDate()+n); return iso(d); };
+const fmt = (v, year) => { if (!v) return ''; const [y,m,d] = v.split('-'); return year ? `${d}/${m}/${y}` : `${d}/${m}`; };
+
+// ---- load saved state ----
+let data = {};
+try { data = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+if (!data._from) { const t = new Date(); t.setDate(t.getDate() - t.getDay()); data._from = iso(t); }
+if (!data._to) data._to = addDays(data._from, 6);
+data._h = data._h || {};
+
+// ---- build tables ----
+let html = '';
+for (const s of SECTIONS) {
+  html += `<div class="wrap"><table><tr><th class="title" colspan="8"><span>${s.title}</span></th></tr>`;
+  html += `<tr><th class="y">שעות שמירה</th>${DAYS.map((d,i) => `<th class="y">${d}<small data-day="${i}"></small></th>`).join('')}</tr>`;
+  s.rows.forEach((r, ri) => {
+    html += `<tr><th class="y"><input class="hr" dir="ltr" data-h="${s.id}-${ri}" value="${r}" autocomplete="off" aria-label="שעות">${s.note ? `<small>${s.note}</small>` : ''}</th>`;
+    DAYS.forEach((_, di) => { html += `<td><input data-k="${s.id}-${ri}-${di}" autocomplete="off" aria-label="${s.title} ${DAYS[di]}"></td>`; });
+    html += `</tr>`;
+  });
+  html += `</table></div>`;
+}
+$('tables').innerHTML = html;
+const inputs = [...document.querySelectorAll('td input')];
+const hrInputs = [...document.querySelectorAll('input.hr')];
+inputs.forEach(i => i.value = data[i.dataset.k] || '');
+hrInputs.forEach(i => { if (data._h[i.dataset.h]) i.value = data._h[i.dataset.h]; });
+$('from').value = data._from; $('to').value = data._to; $('group').value = data._group || ''; $('cmd').value = data._cmd || '';
+
+function showHeader() {
+  const g = $('group').value.trim();
+  $('h').textContent = 'סידור שמירה' + (g ? ' – ' + g : '');
+  document.querySelectorAll('small[data-day]').forEach(el =>
+    el.textContent = $('from').value ? fmt(addDays($('from').value, +el.dataset.day)) : '');
+}
+showHeader();
+
+function collect() {
+  const o = { _from:$('from').value, _to:$('to').value, _group:$('group').value.trim(), _cmd:$('cmd').value.trim(), _h:{} };
+  inputs.forEach(i => { if (i.value.trim()) o[i.dataset.k] = i.value.trim(); });
+  hrInputs.forEach(i => { if (i.value.trim()) o._h[i.dataset.h] = i.value.trim(); });
+  return o;
+}
+
+// ---- saving: autosave on every change + explicit Save button ----
+function status(t, cls) { $('status').textContent = t; $('status').className = 'status ' + (cls || ''); }
+function save(explicit) {
+  data = collect();
+  try {
+    localStorage.setItem(KEY, JSON.stringify(data));
+    status(explicit ? '✓ נשמר! אפשר לצאת' : '✓ נשמר', 'ok');
+    return true;
+  } catch (e) { status('השמירה נכשלה', 'dirty'); return false; }
+}
+document.addEventListener('input', () => { save(false); showHeader(); });
+$('from').addEventListener('change', () => { if ($('from').value) $('to').value = addDays($('from').value, 6); showHeader(); save(false); });
+$('to').addEventListener('change', () => save(false));
+$('save').onclick = () => save(true);
+// last chance when the app goes to the background
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(false); });
+window.addEventListener('pagehide', () => save(false));
+
+let armT;
+$('clear').onclick = () => {
+  const b = $('clear');
+  if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'לחץ שוב כדי למחוק';
+    clearTimeout(armT); armT = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'נקה את כל השמות'; }, 4000); return; }
+  b.classList.remove('armed'); b.textContent = 'נקה את כל השמות';
+  inputs.forEach(i => i.value = ''); save(true);
+};
+
+// ---- text version (for the email body) ----
+function buildText() {
+  let t = `סידור שמירה${data._group ? ' – ' + data._group : ''}\n${data._cmd ? 'צוות ' + data._cmd + '\n' : ''}${fmt(data._from,1)} – ${fmt(data._to,1)}\n`;
+  for (const s of SECTIONS) {
+    let sec = '';
+    DAYS.forEach((d, di) => {
+      const lines = s.rows.map((r, ri) => { const n = data[`${s.id}-${ri}-${di}`];
+        return n ? `   ${data._h[`${s.id}-${ri}`] || r}  ${n}` : null; }).filter(Boolean);
+      if (lines.length) sec += `${d} ${fmt(addDays(data._from, di))}\n${lines.join('\n')}\n`;
+    });
+    if (sec) t += `\n${s.title}\n${sec}`;
+  }
+  return t.trim();
+}
+
+// ---- image ----
+function drawImage() {
+  const colW = [130, ...DAYS.map(() => 110)], rowH = 40, titleH = 44, gap = 24, pad = 20;
+  const W = colW.reduce((a, b) => a + b) + pad * 2;
+  const top = data._cmd ? 96 : 70;
+  let H = pad * 2 + top;
+  SECTIONS.forEach(s => H += titleH + rowH * (s.rows.length + 1) + gap);
+  const scale = 2, c = document.createElement('canvas');
+  c.width = W * scale; c.height = H * scale;
+  const g = c.getContext('2d'); g.scale(scale, scale);
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.direction = 'rtl';
+  g.fillStyle = '#111'; g.font = 'bold 24px Arial';
+  g.fillText('סידור שמירה' + (data._group ? ' – ' + data._group : ''), W / 2, pad + 16);
+  if (data._cmd) { g.font = 'bold 19px Arial'; g.fillText('צוות ' + data._cmd, W / 2, pad + 45); }
+  g.font = 'bold 17px Arial';
+  g.fillText(`מיום ראשון ${fmt(data._from, 1)} עד שבת ${fmt(data._to, 1)}`, W / 2, pad + top - 24);
+  let y = pad + top;
+  const cell = (x, y, w, h, fill, txt, font, color) => {
+    g.fillStyle = fill; g.fillRect(x, y, w, h);
+    g.strokeStyle = '#9a9a9a'; g.lineWidth = 1; g.strokeRect(x + .5, y + .5, w, h);
+    if (txt) { g.fillStyle = color || '#111'; g.font = font; g.direction = /[֐-׿]/.test(txt) ? 'rtl' : 'ltr';
+      let t = txt; while (g.measureText(t).width > w - 8 && t.length > 1) t = t.slice(0, -1);
+      g.fillText(t, x + w / 2, y + h / 2 + 1); }
+  };
+  for (const s of SECTIONS) {
+    cell(pad, y, W - pad * 2, titleH, '#4472c4', s.title, 'bold 20px Arial', '#fff'); y += titleH;
+    const rows = [['שעות שמירה', ...DAYS.map((d, di) => `${d} ${fmt(addDays(data._from, di))}`)],
+      ...s.rows.map((r, ri) => [data._h[`${s.id}-${ri}`] || r, ...DAYS.map((_, di) => data[`${s.id}-${ri}-${di}`] || '')])];
+    rows.forEach((row, ri) => {
+      let x = W - pad;
+      row.forEach((txt, ci) => {
+        x -= colW[ci];
+        const head = ri === 0 || ci === 0;
+        cell(x, y, colW[ci], rowH, head ? '#ffff00' : '#fff', txt, (head ? 'bold ' : '') + '16px Arial');
+        if (ci === 0 && ri > 0 && s.note) { g.fillStyle = '#ffff00'; g.fillRect(x + 1, y + 1, colW[ci] - 2, rowH - 2);
+          g.fillStyle = '#111'; g.direction = 'ltr'; g.font = 'bold 15px Arial'; g.fillText(txt, x + colW[ci] / 2, y + 13);
+          g.direction = 'rtl'; g.font = '12px Arial'; g.fillText(s.note, x + colW[ci] / 2, y + 30); }
+      });
+      y += rowH;
+    });
+    y += gap;
+  }
+  return new Promise(r => c.toBlob(r, 'image/png'));
+}
+const fileName = () => `סידור שמירה${data._group ? ' ' + data._group.replace(/[\\/:*?"<>|']/g, '') : ''} ${fmt(data._from).replace('/', '.')}-${fmt(data._to).replace('/', '.')}.png`;
+
+// share the image through the phone's share sheet (WhatsApp, Mail, …); if that is
+// not available, show it full screen so a long press can save or share it
+async function shareImage(msg) {
+  save(false);
+  const blob = await drawImage();
+  const file = new File([blob], fileName(), { type:'image/png' });
+  if (navigator.canShare && navigator.canShare({ files:[file] })) {
+    try { await navigator.share({ files:[file], title:'סידור שמירה', text: msg }); return true; }
+    catch (e) { if (e.name === 'AbortError') return true; }
+  }
+  $('imgOut').src = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+  $('imgView').hidden = false; $('imgView').scrollTop = 0;
+  return false;
+}
+$('imgClose').onclick = () => { $('imgView').hidden = true; };
+$('shareImg').onclick = () => shareImage('סידור שמירה');
+$('mail').onclick = async () => {
+  // the share sheet offers Mail with the image attached; otherwise open a mail with the schedule as text
+  const shared = await shareImage(buildText());
+  if (!shared) {
+    $('imgView').hidden = true;
+    location.href = 'mailto:?subject=' + encodeURIComponent('סידור שמירה' + (data._group ? ' – ' + data._group : '')) +
+                    '&body=' + encodeURIComponent(buildText());
+  }
+};
+
+// offline support once installed
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
