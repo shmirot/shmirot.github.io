@@ -32,6 +32,7 @@
           background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.12); }
   table { border-collapse:collapse; width:100%; min-width:640px; }
   .wrap.fit { width:max-content; max-width:100%; }
+  th.y.label { min-width:120px; font-size:16px; }
   table.small { min-width:0; width:auto; }
   table.small td input { min-width:0; width:130px; }
   table.small th.y { padding:6px 10px; }
@@ -92,8 +93,8 @@ const SECTIONS = [
   { id:'back',   title:'ש.ג. אחורי', rows:['06:00 - 12:00','12:00 - 18:00','18:00 - 00:00'] },
   { id:'front',  title:'ש.ג קדמי',   rows:['06:00 - 12:00','12:00 - 18:00','18:00 - 00:00','00:00 - 06:00'] },
   { id:'patrol', title:'פטרול לילה', rows:['22:00 - 06:00'], note:'פטרול כל שעתיים' },
-  // fixed: the row label is plain text, not an editable hour
-  { id:'reserve', title:'רזרבה', head:'', rows:['רזרבה'], fixed:true },
+  // same columns as the tables above; the label sits in one tall cell where "שעות שמירה" is
+  { id:'reserve', title:'רזרבה', rows:['רזרבה'], tallLabel:true },
 ];
 // one extra slot: who makes up 2 hours on the Sunday right after the week's Saturday
 const COMPLETE_TITLE = 'השלמת שעתיים';
@@ -116,11 +117,18 @@ data._h = data._h || {};
 // ---- build tables ----
 let html = '';
 for (const s of SECTIONS) {
+  if (s.tallLabel) {
+    html += `<div class="wrap"><table><tr><th class="title" colspan="8"><span>${s.title}</span></th></tr>`
+      + `<tr><th class="y label" rowspan="2">${s.rows[0]}</th>`
+      + `${DAYS.map((d,i) => `<th class="y">${d}<small data-day="${i}"></small></th>`).join('')}</tr><tr>`
+      + DAYS.map((d, di) => `<td><input data-k="${s.id}-0-${di}" autocomplete="off" aria-label="${s.title} ${d}"></td>`).join('')
+      + `</tr></table></div>`;
+    continue;
+  }
   html += `<div class="wrap"><table><tr><th class="title" colspan="8"><span>${s.title}</span></th></tr>`;
-  html += `<tr><th class="y">${s.head ?? 'שעות שמירה'}</th>${DAYS.map((d,i) => `<th class="y">${d}<small data-day="${i}"></small></th>`).join('')}</tr>`;
+  html += `<tr><th class="y">שעות שמירה</th>${DAYS.map((d,i) => `<th class="y">${d}<small data-day="${i}"></small></th>`).join('')}</tr>`;
   s.rows.forEach((r, ri) => {
-    html += s.fixed ? `<tr><th class="y">${r}</th>`
-      : `<tr><th class="y"><input class="hr" dir="ltr" data-h="${s.id}-${ri}" value="${r}" autocomplete="off" aria-label="שעות">${s.note ? `<small>${s.note}</small>` : ''}</th>`;
+    html += `<tr><th class="y"><input class="hr" dir="ltr" data-h="${s.id}-${ri}" value="${r}" autocomplete="off" aria-label="שעות">${s.note ? `<small>${s.note}</small>` : ''}</th>`;
     DAYS.forEach((_, di) => { html += `<td><input data-k="${s.id}-${ri}-${di}" autocomplete="off" aria-label="${s.title} ${DAYS[di]}"></td>`; });
     html += `</tr>`;
   });
@@ -222,8 +230,21 @@ function drawImage() {
       g.fillText(t, x + w / 2, y + h / 2 + 1); }
   };
   for (const s of SECTIONS) {
+    if (s.tallLabel) {
+      // blue title; label in one tall cell on the right; days across, names under each day
+      cell(pad, y, W - pad * 2, titleH, '#4472c4', s.title, 'bold 20px Arial', '#fff'); y += titleH;
+      cell(W - pad - colW[0], y, colW[0], rowH * 2, '#ffff00', s.rows[0], 'bold 18px Arial');
+      let x = W - pad - colW[0];
+      DAYS.forEach((d, di) => {
+        x -= colW[di + 1];
+        cell(x, y, colW[di + 1], rowH, '#ffff00', `${d} ${fmt(addDays(data._from, di))}`, 'bold 16px Arial');
+        cell(x, y + rowH, colW[di + 1], rowH, '#fff', data[`${s.id}-0-${di}`] || '', '16px Arial');
+      });
+      y += rowH * 2 + gap;
+      continue;
+    }
     cell(pad, y, W - pad * 2, titleH, '#4472c4', s.title, 'bold 20px Arial', '#fff'); y += titleH;
-    const rows = [[s.head ?? 'שעות שמירה', ...DAYS.map((d, di) => `${d} ${fmt(addDays(data._from, di))}`)],
+    const rows = [['שעות שמירה', ...DAYS.map((d, di) => `${d} ${fmt(addDays(data._from, di))}`)],
       ...s.rows.map((r, ri) => [data._h[`${s.id}-${ri}`] || r, ...DAYS.map((_, di) => data[`${s.id}-${ri}-${di}`] || '')])];
     rows.forEach((row, ri) => {
       let x = W - pad;
