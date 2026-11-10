@@ -31,6 +31,9 @@
   .wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:16px;
           background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.12); }
   table { border-collapse:collapse; width:100%; min-width:640px; }
+  /* main tables: same fixed column widths everywhere, so each day sits under the same day */
+  table.grid { table-layout:fixed; }
+  table.grid col.c0 { width:130px; }
   .wrap.fit { width:max-content; max-width:100%; }
   th.y.label { min-width:120px; font-size:16px; }
   table.small { min-width:0; width:auto; }
@@ -98,6 +101,7 @@ const SECTIONS = [
 ];
 // one extra slot: who makes up 2 hours on the Sunday right after the week's Saturday
 const COMPLETE_TITLE = 'השלמת שעתיים';
+const COLS = '<colgroup><col class="c0"><col span="7"></colgroup>';
 const KEY = 'shmirot-app-v1';
 const $ = id => document.getElementById(id);
 
@@ -118,14 +122,14 @@ data._h = data._h || {};
 let html = '';
 for (const s of SECTIONS) {
   if (s.tallLabel) {
-    html += `<div class="wrap"><table><tr><th class="title" colspan="8"><span>${s.title}</span></th></tr>`
+    html += `<div class="wrap"><table class="grid">${COLS}<tr><th class="title" colspan="8"><span>${s.title}</span></th></tr>`
       + `<tr><th class="y label" rowspan="2">${s.rows[0]}</th>`
       + `${DAYS.map((d,i) => `<th class="y">${d}<small data-day="${i}"></small></th>`).join('')}</tr><tr>`
       + DAYS.map((d, di) => `<td><input data-k="${s.id}-0-${di}" autocomplete="off" aria-label="${s.title} ${d}"></td>`).join('')
       + `</tr></table></div>`;
     continue;
   }
-  html += `<div class="wrap"><table><tr><th class="title" colspan="8"><span>${s.title}</span></th></tr>`;
+  html += `<div class="wrap"><table class="grid">${COLS}<tr><th class="title" colspan="8"><span>${s.title}</span></th></tr>`;
   html += `<tr><th class="y">שעות שמירה</th>${DAYS.map((d,i) => `<th class="y">${d}<small data-day="${i}"></small></th>`).join('')}</tr>`;
   s.rows.forEach((r, ri) => {
     html += `<tr><th class="y"><input class="hr" dir="ltr" data-h="${s.id}-${ri}" value="${r}" autocomplete="off" aria-label="שעות">${s.note ? `<small>${s.note}</small>` : ''}</th>`;

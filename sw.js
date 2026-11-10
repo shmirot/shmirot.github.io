@@ -1,5 +1,5 @@
 // cache the app so it opens even without reception
-const CACHE = 'shmirot-v11';
+const CACHE = 'shmirot-v12';
 const FILES = ['./', 'index.html', 'manifest.json', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 // take over right away, so a new version shows on the next open instead of after all windows close
 self.addEventListener('install', e => {
