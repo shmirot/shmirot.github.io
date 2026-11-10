@@ -31,8 +31,10 @@
   .wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:16px;
           background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.12); }
   table { border-collapse:collapse; width:100%; min-width:640px; }
-  table.small { min-width:0; }
-  table.small th.y { width:1%; padding:6px 12px; }
+  .wrap.fit { width:max-content; max-width:100%; }
+  table.small { min-width:0; width:auto; }
+  table.small td input { min-width:0; width:130px; }
+  table.small th.y { padding:6px 10px; }
   th, td { border:1px solid var(--line); padding:0; text-align:center; font-size:14px; }
   th.title { background:var(--head); color:#fff; font-size:16px; padding:8px; }
   th.title span { position:sticky; right:8px; left:8px; }
@@ -94,7 +96,7 @@ const SECTIONS = [
   { id:'reserve', title:'רזרבה', head:'', rows:['רזרבה'], fixed:true },
 ];
 // one extra slot: who makes up 2 hours on the Sunday right after the week's Saturday
-const COMPLETE_TITLE = 'השלמת שעתיים – יום ראשון';
+const COMPLETE_TITLE = 'השלמת שעתיים';
 const KEY = 'shmirot-app-v1';
 const $ = id => document.getElementById(id);
 
@@ -124,7 +126,7 @@ for (const s of SECTIONS) {
   });
   html += `</table></div>`;
 }
-html += `<div class="wrap"><table class="small"><tr><th class="title" colspan="2"><span>${COMPLETE_TITLE}</span></th></tr>
+html += `<div class="wrap fit"><table class="small"><tr><th class="title" colspan="2"><span>${COMPLETE_TITLE}</span></th></tr>
   <tr><th class="y">ראשון<small id="nextSun"></small></th>
   <td><input data-k="complete" autocomplete="off" aria-label="${COMPLETE_TITLE}"></td></tr></table></div>`;
 $('tables').innerHTML = html;
@@ -238,10 +240,10 @@ function drawImage() {
     y += gap;
   }
   // make-up-hours box: title, then "Sunday dd/mm" + name, aligned to the right like the tables
-  const boxW = colW[0] + colW[1] * 2;
+  const boxW = colW[0] + colW[1] + 20;
   cell(W - pad - boxW, y, boxW, titleH, '#4472c4', COMPLETE_TITLE, 'bold 18px Arial', '#fff'); y += titleH;
   cell(W - pad - colW[0], y, colW[0], rowH, '#ffff00', `ראשון ${fmt(addDays(data._to, 1))}`, 'bold 16px Arial');
-  cell(W - pad - boxW, y, colW[1] * 2, rowH, '#fff', data.complete || '', '16px Arial');
+  cell(W - pad - boxW, y, colW[1] + 20, rowH, '#fff', data.complete || '', '16px Arial');
   return new Promise(r => c.toBlob(r, 'image/png'));
 }
 const fileName = () => `סידור שמירה${data._group ? ' ' + data._group.replace(/[\\/:*?"<>|']/g, '') : ''} ${fmt(data._from).replace('/', '.')}-${fmt(data._to).replace('/', '.')}.png`;
