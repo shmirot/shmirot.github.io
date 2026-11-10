@@ -274,8 +274,15 @@ $('mail').onclick = async () => {
   }
 };
 
-// offline support once installed
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+// offline support once installed; check for a newer version every time the app opens
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+    .then(reg => { reg.update(); document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update(); }); })
+    .catch(() => {});
+  // when a new version takes over, reload once so it shows (data stays saved)
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; save(false); location.reload(); } });
+}
 </script>
 </body>
 </html>
